@@ -773,6 +773,7 @@ func (kcp *KCP) flush(ackOnly bool) uint32 {
 		kcp.snd_nxt++
 		newSegsCount++
 	}
+
 	if newSegsCount > 0 {
 		kcp.snd_queue = kcp.remove_front(kcp.snd_queue, newSegsCount)
 	}

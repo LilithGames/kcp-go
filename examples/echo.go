@@ -1,19 +1,17 @@
 package main
 
 import (
-	"crypto/sha1"
-	"io"
+	//"crypto/sha1"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/xtaci/kcp-go/v5"
-	"golang.org/x/crypto/pbkdf2"
+	//"golang.org/x/crypto/pbkdf2"
 )
 
 func main() {
-	key := pbkdf2.Key([]byte("demo pass"), []byte("demo salt"), 1024, 32, sha1.New)
-	block, _ := kcp.NewAESBlockCrypt(key)
-	if listener, err := kcp.ListenWithOptions("127.0.0.1:12345", block, 10, 3); err == nil {
+	if listener, err := kcp.ListenWithOptions("127.0.0.1:12345", nil, 0, 0); err == nil {
 		// spin-up the client
 		go client()
 		for {
@@ -47,25 +45,30 @@ func handleEcho(conn *kcp.UDPSession) {
 }
 
 func client() {
-	key := pbkdf2.Key([]byte("demo pass"), []byte("demo salt"), 1024, 32, sha1.New)
-	block, _ := kcp.NewAESBlockCrypt(key)
-
-	// wait for server to become ready
 	time.Sleep(time.Second)
 
 	// dial to the echo server
-	if sess, err := kcp.DialWithOptions("127.0.0.1:12345", block, 10, 3); err == nil {
+	if sess, err := kcp.DialWithOptions("127.0.0.1:12345", nil, 0, 0); err == nil {
+		data := time.Now().String()
+		log.Println("sent kcp:", data)
+		if _, err := sess.Write([]byte(data)); err == nil {
+			fmt.Println("write first kcp")
+		} else {
+			log.Fatal(err)
+		}
+
 		for {
 			data := time.Now().String()
 			buf := make([]byte, len(data))
-			log.Println("sent:", data)
-			if _, err := sess.Write([]byte(data)); err == nil {
-				// read back the data
-				if _, err := io.ReadFull(sess, buf); err == nil {
-					log.Println("recv:", string(buf))
-				} else {
-					log.Fatal(err)
-				}
+			// read back the data
+			if n, err := sess.Read(buf); err == nil {
+				log.Println("recv:", string(buf), n)
+			} else {
+				log.Fatal(err)
+			}
+
+			if _, err := sess.WritePacket(0, []byte(data)); err == nil {
+				log.Println("sent udp:", data)
 			} else {
 				log.Fatal(err)
 			}
