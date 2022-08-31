@@ -1233,6 +1233,7 @@ func Listen(laddr string) (net.Listener, error) { return ListenWithOptions(laddr
 type ListenOption func(*Listener)
 
 func WithTokenValidator(va TokenValidator) ListenOption {
+
 	return func(l *Listener) {
 		l.valdator = va
 	}
